@@ -1,0 +1,10 @@
+[GENERAL]
+PopUpHeadLights = 1 // 0 - disabled, 1 - enabled
+Roof = 2 // 0 - default, 1 - sun roof, 2 - customizable roof(menu option)
+AutosculptExhaustFX = 1 // 0 - disabled, 1 - enabled
+ChopTop = 1 // 0 - default(if RacingClass is 2 then enabled), 1 - enabled, 2 - disabled
+IneriorHI = 1 // 0 - disabled, 1 - enabled(menu option)
+ForceLodA = 1 // 0 - disabled, 1 - enabled
+
+[CUSTOM_PARTS]
+AftermarketSpoilers = 0x1FFF0000 // Bits 00000101(2) - spoiler 1 and 3 = 5(16)
