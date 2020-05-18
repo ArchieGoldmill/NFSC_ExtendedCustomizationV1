@@ -33,11 +33,16 @@ namespace fs = filesystem;
 }\
 
 vector<CarData*> carList;
+bool forceLodA = false;
 
 auto GetCarTypeName = (char* (__cdecl*)(int))0x007B0290;
 auto FeCustomizeParts_AddMenuOption = (int(__thiscall*)(DWORD*, DWORD, int, bool, BYTE))0x85FE30;
 auto StringHashModel = (int(__cdecl*)(char* a1, unsigned int a2))0x471080;
 auto StringHash = (int(__cdecl*)(char* a1))0x471050;
+auto bSNPrintf = (int(__cdecl*)(char* buffer, int size, const char* str, ...))0x475C30;
+auto GetPart = (void* (__thiscall*)(int* carNum, int partNum))0x7B06F0;
+auto GetPartNameHash = (int(__thiscall*)(void* _this))0x7CD930;
+auto InstallPart = (int(__cdecl*)(void* _this, int* carId, int a3, int partNum, int a5, const char* str, ...))0x84F040;
 int* GameState = (int*)0xA99BBC;
 
 int GetBit(int n, int k)
@@ -192,6 +197,44 @@ int __stdcall CheckCarData(int type, int carId)
 	return 0;
 }
 
+bool __stdcall SetHeadlights(int* carId, void* _this, int edi)
+{
+	int res = CheckCarData(0, *carId);
+	if (res == 2)
+	{
+		char* carName = GetCarTypeName(*carId);
+		void* partPtr = GetPart(carId, 0x20);
+		if (partPtr != NULL)
+		{
+			int hash = GetPartNameHash(partPtr);
+			char buffer[128];
+
+			bSNPrintf(buffer, 128, "%s_LEFT_HEADLIGHT", carName);
+			if (hash == StringHash(buffer))
+			{
+				InstallPart(_this, carId, edi, 0x2A, 1, "%s_RIGHT_HEADLIGHT", carName);
+				InstallPart(_this, carId, edi, 0x2B, 1, "%s_RIGHT_HEADLIGHT_GLASS", carName);
+				InstallPart(_this, carId, edi, 0x21, 1, "%s_LEFT_HEADLIGHT_GLASS", carName);
+			}
+
+			bSNPrintf(buffer, 128, "%s_LEFT_HEADLIGHT_OFF", carName);
+			if (hash == StringHash(buffer))
+			{
+				InstallPart(_this, carId, edi, 0x2A, 1, "%s_RIGHT_HEADLIGHT_OFF", carName);
+				InstallPart(_this, carId, edi, 0x2B, 1, "%s_RIGHT_HEADLIGHT_GLASS_OFF", carName);
+				InstallPart(_this, carId, edi, 0x20, 1, "%s_LEFT_HEADLIGHT_OFF", carName);
+				InstallPart(_this, carId, edi, 0x21, 1, "%s_LEFT_HEADLIGHT_GLASS_OFF", carName);
+			}
+		}
+
+		return 0;
+	}
+	else
+	{
+		return res;
+	}
+}
+
 DWORD PopUpHeadlights1 = 0x00859836;
 DWORD PopUpHeadlights2 = 0x008598ED;
 void __declspec(naked) PopUpHeadlightsCave()
@@ -210,9 +253,10 @@ void __declspec(naked) PopUpHeadlightsCave()
 	__asm
 	{
 		// Make call
-		push eax
-		push 0 // Popup Headlights
-		call CheckCarData
+		push edi;
+		push ebp;
+		push esi;
+		call SetHeadlights;
 		cmp eax, 1
 	}
 
@@ -431,6 +475,26 @@ void __declspec(naked) AftermarketTuningCave()
 		call FeCustomizeParts_AddMenuOption;
 
 	skipRoof:
+		SAVE_REGS;
+		mov eax, CurrentCarPtr;
+		mov eax, [eax];
+		add eax, 0xBF0;
+		push[eax];
+		push 0;// HeadLights
+		call CheckCarData;
+		cmp eax, 2;
+		RESTORE_REGS;
+		jne skipLights;
+
+		xor edx, edx;
+		mov dl, [esi + 0x000002D4];
+		push 00;
+		mov ecx, esi;
+		push edx;
+		push 0x20; // Headlight left
+		push 0x3691263B; // item name
+		call FeCustomizeParts_AddMenuOption;
+	skipLights:
 		jmp AftermarketTuning1;
 	}
 }
@@ -456,8 +520,11 @@ void __declspec(naked) FixInteriorPartLoadCave()
 
 void MakeLod(char* str, char lod)
 {
-	int len = strlen(str);
-	str[len - 1] = 'A';
+	if (strstr(str, "DAMAGE") == NULL)
+	{
+		int len = strlen(str);
+		str[len - 1] = 'A';
+	}
 }
 
 int GetCustomSpoilerHash(bool type, char* str, int carId)
@@ -509,16 +576,20 @@ int GetCustomSpoilerHash(bool type, char* str, int carId)
 
 int __cdecl ChangePartString(int carId, char* str, int modelHash)
 {
-	for (CarData* i : carList)
+	if (forceLodA)
 	{
-		if (StringHash(i->Name) != modelHash)
+		MakeLod(str, 'A');
+	}
+	else
+	{
+		for (CarData* i : carList)
 		{
-			continue;
-		}
+			if (StringHash(i->Name) != modelHash)
+			{
+				continue;
+			}
 
-		if (i->ForceLodA)
-		{
-			if (strstr(str, "DAMAGE") == NULL)
+			if (i->ForceLodA)
 			{
 				MakeLod(str, 'A');
 			}
@@ -639,8 +710,42 @@ void __declspec(naked) PassCurrentCarLoading5Cave()
 	}
 }
 
+DWORD CarShadow1 = 0x007E5A6A;
+DWORD CarShadow2 = 0x007C9F10;
+const char* NeonBlue = "CARSHADOW1";
+const char* NeonGreen = "CARSHADOW2";
+void __declspec(naked) CarShadowCave()
+{
+	__asm
+	{
+		mov ecx, [ebp + 8];
+		mov ecx, [ecx + 0x000001EC];
+		call CarShadow2;
+
+		cmp eax, 0x89F23A14; // green
+		jne neonBlue;
+		push NeonGreen;
+		jmp neonExit;
+
+
+	neonBlue:
+		cmp eax, 0x880C43AB; // blue
+		jne neonOriginal;
+		push NeonBlue;
+		jmp neonExit;
+
+	neonOriginal:
+		push 0x009F26B4;
+	neonExit:
+		jmp CarShadow1;
+	}
+}
+
 void Init()
 {
+	CIniReader iniReader("CustomizationExtender.ini");
+	forceLodA = iniReader.ReadInteger((char*)"GENERAL", (char*)"ForceLodA", 0);
+
 	AddDefaultCars();
 
 	LoadCarData();
@@ -675,6 +780,9 @@ void Init()
 	injector::MakeJMP(0x007D55C3, PassCurrentCarLoading5Cave, true);
 	injector::WriteMemory<char>(0x007D55D6, 0x14, true);
 	injector::WriteMemory<char>(0x007D55D1, 0x24, true);
+
+	/*injector::MakeJMP(0x007E5A65, CarShadowCave, true);
+	injector::WriteMemory<char>(0x007E5E4F, 0xEB, true);*/
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)

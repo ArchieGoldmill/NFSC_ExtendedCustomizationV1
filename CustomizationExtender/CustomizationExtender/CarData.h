@@ -5,7 +5,7 @@ struct CarData
 {
 	char* Name;
 
-	bool PopUpHeadLights = false;
+	int PopUpHeadLights = 0; // disabled, popupsm customizible
 
 	bool ForceLodA = false;
 
