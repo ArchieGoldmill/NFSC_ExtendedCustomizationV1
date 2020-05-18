@@ -17,6 +17,10 @@ struct CarData
 
 	int ChopTop = 0; // default, enabled, disabled
 
+	bool FrontBadging = false;
+
+	bool RearBadging = false;
+
 	int CustomAftermarketSpoilers = false;
 	int CustomAutosculptSpoilers = false;
 };

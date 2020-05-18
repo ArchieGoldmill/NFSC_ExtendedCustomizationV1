@@ -54,27 +54,27 @@ void AddDefaultCars()
 {
 	CarData* car_240SX = new CarData();
 	car_240SX->Name = (char*)"240SX";
-	car_240SX->PopUpHeadLights = true;
+	car_240SX->PopUpHeadLights = 1;
 
 	CarData* car_RX7 = new CarData();
 	car_RX7->Name = (char*)"RX7";
-	car_RX7->PopUpHeadLights = true;
+	car_RX7->PopUpHeadLights = 1;
 
 	CarData* car_MR2 = new CarData();
 	car_MR2->Name = (char*)"MR2";
-	car_MR2->PopUpHeadLights = true;
+	car_MR2->PopUpHeadLights = 1;
 
 	CarData* car_CAMARO = new CarData();
 	car_CAMARO->Name = (char*)"CAMARO";
-	car_CAMARO->PopUpHeadLights = true;
+	car_CAMARO->PopUpHeadLights = 1;
 
 	CarData* car_COROLLA = new CarData();
 	car_COROLLA->Name = (char*)"COROLLA";
-	car_COROLLA->PopUpHeadLights = true;
+	car_COROLLA->PopUpHeadLights = 1;
 
 	CarData* car_CHARGER69 = new CarData();
 	car_CHARGER69->Name = (char*)"CHARGER69";
-	car_CHARGER69->PopUpHeadLights = true;
+	car_CHARGER69->PopUpHeadLights = 1;
 
 	CarData* car_BRERA = new CarData();
 	car_BRERA->Name = (char*)"BRERA";
@@ -123,6 +123,8 @@ void LoadCarData()
 		carData->ForceLodA = iniReader.ReadInteger((char*)"GENERAL", (char*)"ForceLodA", 0);
 		carData->CustomAftermarketSpoilers = iniReader.ReadInteger((char*)"CUSTOM_PARTS", (char*)"AftermarketSpoilers", 0);
 		carData->CustomAutosculptSpoilers = iniReader.ReadInteger((char*)"CUSTOM_PARTS", (char*)"AutosculptSpoilers", 0);
+		carData->FrontBadging = iniReader.ReadInteger((char*)"GENERAL", (char*)"FrontBadging", 0);
+		carData->RearBadging = iniReader.ReadInteger((char*)"GENERAL", (char*)"RearBadging", 0);
 
 		int size = carNameStr.length();
 		carData->Name = new char[size + 1];
@@ -185,12 +187,22 @@ int __stdcall CheckCarData(int type, int carId)
 
 		if (type == 6)
 		{
-			return i->ForceLodA;
+			return i->CustomAutosculptSpoilers;
 		}
 
 		if (type == 7)
 		{
-			return i->CustomAutosculptSpoilers;
+			return i->ForceLodA;
+		}
+
+		if (type == 8)
+		{
+			return i->FrontBadging;
+		}
+
+		if (type == 9)
+		{
+			return i->RearBadging;
 		}
 	}
 
@@ -494,7 +506,50 @@ void __declspec(naked) AftermarketTuningCave()
 		push 0x20; // Headlight left
 		push 0x3691263B; // item name
 		call FeCustomizeParts_AddMenuOption;
+
 	skipLights:
+		SAVE_REGS;
+		mov eax, CurrentCarPtr;
+		mov eax, [eax];
+		add eax, 0xBF0;
+		push[eax];
+		push 8;// Front badging
+		call CheckCarData;
+		cmp eax, 1;
+		RESTORE_REGS;
+		jne skipFrontBadging;
+
+		xor edx, edx;
+		mov dl, [esi + 0x000002D4];
+		push 00;
+		mov ecx, esi;
+		push edx;
+		push 0x49; // Front badging
+		push 0x3691263B; // item name
+		call FeCustomizeParts_AddMenuOption;
+
+	skipFrontBadging:
+		SAVE_REGS;
+		mov eax, CurrentCarPtr;
+		mov eax, [eax];
+		add eax, 0xBF0;
+		push[eax];
+		push 9;// Rear badging
+		call CheckCarData;
+		cmp eax, 1;
+		RESTORE_REGS;
+		jne skipRearBadging;
+
+		xor edx, edx;
+		mov dl, [esi + 0x000002D4];
+		push 00;
+		mov ecx, esi;
+		push edx;
+		push 0x4B; // Rear badging
+		push 0x3691263B; // item name
+		call FeCustomizeParts_AddMenuOption;
+
+	skipRearBadging:
 		jmp AftermarketTuning1;
 	}
 }
@@ -541,7 +596,7 @@ int GetCustomSpoilerHash(bool type, char* str, int carId)
 	int spoilers;
 	if (type)
 	{
-		spoilers = CheckCarData(7, carId);
+		spoilers = CheckCarData(6, carId);
 	}
 	else
 	{
@@ -561,7 +616,7 @@ int GetCustomSpoilerHash(bool type, char* str, int carId)
 		strcpy(buffer + 9, "SPOILER_");
 		strcpy(buffer + 17, str + 9);
 
-		if (CheckCarData(6, carId))
+		if (CheckCarData(7, carId))
 		{
 			MakeLod(buffer, 'A');
 		}
@@ -741,6 +796,79 @@ void __declspec(naked) CarShadowCave()
 	}
 }
 
+DWORD FrontBadge1 = 0x00859D02;
+DWORD FrontBadge2 = 0x00859C8B;
+void __declspec(naked) FrontBadgeCave()
+{
+	__asm
+	{
+		mov ebx, eax;
+		SAVE_REGS;
+		push[esi];
+		push 8; // Front badge
+		call CheckCarData;
+		cmp eax, 1;
+		RESTORE_REGS;
+		jne FrontBadgeDefault;
+		jmp FrontBadge1;
+
+	FrontBadgeDefault:
+		test ebx, ebx;
+		jne FrontBadgeDefault2;
+		jmp FrontBadge1;
+
+	FrontBadgeDefault2:
+		jmp FrontBadge2;
+	}
+}
+
+DWORD RearBadge1 = 0x00859988;
+DWORD RearBadge2 = 0x0085996B;
+void __declspec(naked) RearBadge1Cave()
+{
+	__asm
+	{
+		call GetPart;
+
+		SAVE_REGS;
+		push[esi];
+		push 9; // Rear badge
+		call CheckCarData;
+		cmp eax, 1;
+		RESTORE_REGS;
+		jne RearBadgeDefault;
+		jmp RearBadge1;
+
+	RearBadgeDefault:
+		test eax, eax;
+		jne RearBadgeDefault2;
+		jmp RearBadge1;
+
+	RearBadgeDefault2:
+		jmp RearBadge2;
+	}
+}
+
+DWORD RearBadge21 = 0x008599D2;
+void __declspec(naked) RearBadge2Cave()
+{
+	__asm
+	{
+		SAVE_REGS;
+		push[esi];
+		push 9; // Rear badge
+		call CheckCarData;
+		cmp eax, 1;
+		RESTORE_REGS;
+		jne RearBadgeDefault;
+		jmp RearBadge21;
+
+	RearBadgeDefault:
+		call InstallPart;
+		jmp RearBadge21;
+	}
+}
+
 void Init()
 {
 	CIniReader iniReader("CustomizationExtender.ini");
@@ -754,6 +882,9 @@ void Init()
 	injector::MakeJMP(0x0086527D, PopupHeadlightsOnCave, true);
 	injector::MakeJMP(0x007CC6BD, EnableExhaustFxCave, true);
 	injector::MakeJMP(0x0086617D, EnableChopTopMenuItemCave, true);
+	injector::MakeJMP(0x00859C85, FrontBadgeCave, true);
+	injector::MakeJMP(0x00859962, RearBadge1Cave, true);
+	injector::MakeJMP(0x008599CD, RearBadge2Cave, true);
 
 	injector::MakeJMP(0x008598ED, HandleRoofCave, true);
 	injector::MakeJMP(0x0085992C, FixRoofCarName1Cave, true);
