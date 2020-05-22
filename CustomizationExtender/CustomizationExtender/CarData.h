@@ -60,3 +60,17 @@ bool operator==(const Vector& a, const Vector& b)
 {
 	return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
+
+struct MenuPartItem
+{
+	MenuPartItem* next;
+	MenuPartItem* prev;
+	int v1;
+	int* part;
+	char* type;
+	int partNum;
+	int v2;
+	int v3;
+	int v4;
+	int v5;
+};

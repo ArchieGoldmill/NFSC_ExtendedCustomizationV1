@@ -556,23 +556,33 @@ void __declspec(naked) FixInteriorPartLoadCave()
 	}
 }
 
-void __stdcall AddEmptyPartToList(void* firstItem, int part, void* emptyItem)
+void __stdcall AddEmptyPartToList(MenuPartItem* firstItem, int part, int* emptyItemPtr)
 {
 	if (part == 0x30)// spoiler
 	{
+		int* ptr = (int*)malloc(sizeof(MenuPartItem) + 4);
 
+		MenuPartItem* fakePart = (MenuPartItem*)(ptr + 1);//new MenuPartItem();
+
+		*fakePart = *firstItem;
+		fakePart->part = emptyItemPtr;
+
+		*ptr = firstItem->v5;
+
+		firstItem->next = fakePart;
+		fakePart->prev = firstItem;
 	}
 }
 
 DWORD AddEmptyPart = 0x0085FA4D;
-DWORD PartsPtr = 0x00B76860;
+DWORD PartsPtr = 0x00B76860;//00B74CB8
 void __declspec(naked) AddEmptyPartCave()
 {
 	__asm
 	{
 		// original code
-		mov[esp + 14], ebx;
-		mov[esp + 24], ebx;
+		mov[esp + 0x14], ebx;
+		mov[esp + 0x24], ebx;
 
 		SAVE_REGS;
 		mov eax, [PartsPtr];
@@ -646,7 +656,8 @@ int GetCustomSpoilerHash(bool type, char* str, int carId)
 	return 0;
 }
 
-int __cdecl ChangePartString(int carId, char* str, int modelHash)
+//int __cdecl ChangePartString(int carId, char* str, int modelHash)
+int __cdecl ChangePartString(char* str, int modelHash)
 {
 	if (forceLodA)
 	{
@@ -690,11 +701,11 @@ void __declspec(naked) HookPartLoadCave()
 {
 	__asm
 	{
-		mov eax, esp;
+		/*mov eax, esp;
 		add eax, 0x13C;
-		push[eax];
+		push[eax];*/
 		call ChangePartString;
-		add esp, 0xC;
+		add esp, 0x8;//0xc
 		jmp HookPartLoad1;
 	}
 }
@@ -1010,7 +1021,7 @@ void InitCustomizationMenuItems()
 
 	injector::MakeJMP(0x0085FA1F, FixInteriorPartLoadCave, true);
 
-	injector::MakeJMP(0x0085FA45, AddEmptyPartCave, true);
+	//injector::MakeJMP(0x0085FA45, AddEmptyPartCave, true);
 
 	injector::MakeJMP(0x00859C85, FrontBadgeCave, true);
 
@@ -1030,21 +1041,21 @@ void InitPartLoadHook()
 {
 	injector::MakeJMP(0x007CDC85, HookPartLoadCave, true);
 
-	injector::MakeJMP(0x007CFD58, PassCurrentCarLoading1Cave, true);
-	injector::WriteMemory<char>(0x007CFD66, 0x14, true);
+	//injector::MakeJMP(0x007CFD58, PassCurrentCarLoading1Cave, true);
+	//injector::WriteMemory<char>(0x007CFD66, 0x14, true);
 
-	injector::MakeJMP(0x007CFC46, PassCurrentCarLoading2Cave, true);
-	injector::WriteMemory<char>(0x007CFC55, 0x14, true);
+	//injector::MakeJMP(0x007CFC46, PassCurrentCarLoading2Cave, true);
+	//injector::WriteMemory<char>(0x007CFC55, 0x14, true);
 
-	injector::MakeJMP(0x007CFF90, PassCurrentCarLoading3Cave, true);
-	injector::WriteMemory<char>(0x007CFF9F, 0x14, true);
+	//injector::MakeJMP(0x007CFF90, PassCurrentCarLoading3Cave, true);
+	//injector::WriteMemory<char>(0x007CFF9F, 0x14, true);
 
-	injector::MakeJMP(0x007CFEE8, PassCurrentCarLoading4Cave, true);
-	injector::WriteMemory<char>(0x007CFEF4, 0x14, true);
+	//injector::MakeJMP(0x007CFEE8, PassCurrentCarLoading4Cave, true);
+	//injector::WriteMemory<char>(0x007CFEF4, 0x14, true);
 
-	injector::MakeJMP(0x007D55C3, PassCurrentCarLoading5Cave, true);
-	injector::WriteMemory<char>(0x007D55D6, 0x14, true);
-	injector::WriteMemory<char>(0x007D55D1, 0x24, true);
+	//injector::MakeJMP(0x007D55C3, PassCurrentCarLoading5Cave, true);
+	//injector::WriteMemory<char>(0x007D55D6, 0x14, true);
+	//injector::WriteMemory<char>(0x007D55D1, 0x24, true);
 }
 
 void InitExhaustFix()
