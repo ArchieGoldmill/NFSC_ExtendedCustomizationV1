@@ -46,6 +46,8 @@ auto GetPartNameHash = (int(__thiscall*)(void* _this))0x7CD930;
 auto InstallPart = (int(__cdecl*)(void* _this, int* carId, int a3, int partNum, int a5, const char* str, ...))0x84F040;
 auto IsNotAutosculpt = (bool(__thiscall*)(void* _this))0x7CA040;
 int* GameState = (int*)0xA99BBC;
+int* ForceHeadlightsOff = (int*)0x00B74C18;
+float* FrontSteerAngle = (float*)0x00A7B668;
 
 int GetBit(int n, int k)
 {
@@ -106,7 +108,7 @@ CarData* CheckIfExists(char* name)
 
 void LoadCarData()
 {
-	std::string path = "ExtendedCustomiationCars";
+	std::string path = "ExtendedCustomizationCars";
 	fs::directory_iterator iterator = fs::directory_iterator(path);
 	for (const auto& entry : iterator)
 	{
@@ -126,6 +128,7 @@ void LoadCarData()
 		//carData->CustomAutosculptSpoilers = iniReader.ReadInteger((char*)"CUSTOM_PARTS", (char*)"AutosculptSpoilers", 0);
 		carData->FrontBadging = iniReader.ReadInteger((char*)"GENERAL", (char*)"FrontBadging", 0);
 		carData->RearBadging = iniReader.ReadInteger((char*)"GENERAL", (char*)"RearBadging", 0);
+		carData->HeadlightsOnOffTexture = iniReader.ReadInteger((char*)"GENERAL", (char*)"HeadlightsOnOffTexture", 0);
 
 		int size = carNameStr.length();
 		carData->Name = new char[size + 1];
@@ -200,6 +203,11 @@ int __stdcall CheckCarData(IniOption type, int carId)
 		{
 			return i->RearBadging;
 		}
+
+		if (type == IniOption::_HeadlightsOnOffTexture)
+		{
+			return i->HeadlightsOnOffTexture;
+		}
 	}
 
 	return 0;
@@ -265,9 +273,9 @@ void __declspec(naked) PopUpHeadlightsCave()
 	// Some original code
 	__asm
 	{
-		push ebx
-		push edi
-		mov edi, [esp + 0x0000021C]
+		push ebx;
+		push edi;
+		mov edi, [esp + 0x0000021C];
 	}
 
 	// Save registers as function call in not expected
@@ -287,11 +295,11 @@ void __declspec(naked) PopUpHeadlightsCave()
 
 	__asm
 	{
-		je resultTrue
-		jmp PopUpHeadlights2
+		je resultTrue;
+		jmp PopUpHeadlights2;
 
-		resultTrue :
-		jmp PopUpHeadlights1
+	resultTrue:
+		jmp PopUpHeadlights1;
 	}
 }
 
@@ -303,10 +311,10 @@ void __declspec(naked) PopupHeadlightsOnCave()
 
 	__asm
 	{
-		push eax
-		push _PopUpHeadLights
-		call CheckCarData
-		cmp eax, 2
+		push eax;
+		push _PopUpHeadLights;
+		call CheckCarData;
+		cmp eax, 2;
 	}
 
 	RESTORE_REGS;
@@ -318,6 +326,47 @@ void __declspec(naked) PopupHeadlightsOnCave()
 
 		resultTrue :
 		jmp PopupHeadlightsOn1
+	}
+}
+
+DWORD HeadlightsOnOffTexture1 = 0x007ADCAE;
+void __declspec(naked) HeadlightsOnOffTextureCave()
+{
+	__asm
+	{
+		mov esi, ForceHeadlightsOff;
+		mov esi, [esi];
+		cmp esi, 1;
+		je exitHeadlightsOnOff;
+
+		SAVE_REGS;
+		mov eax, ecx;
+		add eax, 0x3F0;
+		mov eax, [eax];
+		mov eax, [eax];
+
+		push eax;
+		push _HeadlightsOnOffTexture;
+		call CheckCarData;
+		cmp eax, 0;
+
+		RESTORE_REGS;
+
+		je exitHeadlightsOnOff;
+
+		mov esi, GameState;
+		mov esi, [esi];
+		cmp esi, 3;
+		je headlightsOff;
+
+		mov esi, 0;
+		jmp exitHeadlightsOnOff;
+
+	headlightsOff:
+		mov esi, 1;
+
+	exitHeadlightsOnOff:
+		jmp HeadlightsOnOffTexture1;
 	}
 }
 
@@ -556,13 +605,13 @@ void __declspec(naked) FixInteriorPartLoadCave()
 	}
 }
 
-void __stdcall AddEmptyPartToList(MenuPartItem* firstItem, int part, int* emptyItemPtr)
+void __stdcall AddEmptyPartToList(MenuPartItem * firstItem, int part, int* emptyItemPtr)
 {
 	if (part == 0x30)// spoiler
 	{
 		int* ptr = (int*)malloc(sizeof(MenuPartItem) + 4);
 
-		MenuPartItem* fakePart = (MenuPartItem*)(ptr + 1);//new MenuPartItem();
+		MenuPartItem * fakePart = (MenuPartItem*)(ptr + 1);//new MenuPartItem();
 
 		*fakePart = *firstItem;
 		fakePart->part = emptyItemPtr;
@@ -1011,6 +1060,8 @@ void InitPopupHeadLights()
 {
 	injector::MakeJMP(0x0085980B, PopUpHeadlightsCave, true);
 	injector::MakeJMP(0x0086527D, PopupHeadlightsOnCave, true);
+
+	injector::MakeJMP(0x007ADCA8, HeadlightsOnOffTextureCave, true);
 }
 
 void InitCustomizationMenuItems()
@@ -1075,6 +1126,7 @@ void Init()
 	CIniReader iniReader("ExtendedCustomization.ini");
 	forceLodA = iniReader.ReadInteger((char*)"GENERAL", (char*)"ForceLodA", 0);
 	fixExhaustFx = iniReader.ReadInteger((char*)"GENERAL", (char*)"FixExhaustFx", 1);
+	*FrontSteerAngle = iniReader.ReadFloat((char*)"GENERAL", (char*)"FrontSteerAngle", 0);
 
 	AddDefaultCars();
 

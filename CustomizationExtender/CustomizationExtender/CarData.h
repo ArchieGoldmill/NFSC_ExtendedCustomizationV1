@@ -8,7 +8,8 @@ enum IniOption
 	_Roof,
 	_ChopTop,
 	_FrontBadging,
-	_RearBadging
+	_RearBadging,
+	_HeadlightsOnOffTexture
 };
 
 struct CarData
@@ -28,6 +29,8 @@ struct CarData
 	bool FrontBadging = false;
 
 	bool RearBadging = false;
+
+	bool HeadlightsOnOffTexture = false;
 
 	int CustomAftermarketSpoilers = false;
 	int CustomAutosculptSpoilers = false;
