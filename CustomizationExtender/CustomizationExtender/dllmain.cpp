@@ -37,7 +37,7 @@ bool forceLodA = false;
 bool fixExhaustFx = false;
 
 auto GetCarTypeName = (char* (__cdecl*)(int))0x007B0290;
-auto FeCustomizeParts_AddMenuOption = (int(__thiscall*)(DWORD*, DWORD, int, bool, BYTE))0x85FE30;
+auto FeCustomizeParts_AddMenuOption = (int(__thiscall*)(void* _this, int name, int part, int, int))0x85FE30;
 auto StringHashModel = (int(__cdecl*)(char* a1, unsigned int a2))0x471080;
 auto StringHash = (int(__cdecl*)(char* a1))0x471050;
 auto bSNPrintf = (int(__cdecl*)(char* buffer, int size, const char* str, ...))0x475C30;
@@ -470,6 +470,11 @@ void __declspec(naked) FixRoofCarName2Cave()
 	}
 }
 
+void __stdcall AddAftermarketMenus(void* _this)
+{
+
+}
+
 DWORD AftermarketTuning1 = 0x00866215;
 void __declspec(naked) AftermarketTuningCave()
 {
@@ -842,37 +847,6 @@ void __declspec(naked) PassCurrentCarLoading5Cave()
 	}
 }
 
-DWORD CarShadow1 = 0x007E5A6A;
-DWORD CarShadow2 = 0x007C9F10;
-const char* NeonBlue = "CARSHADOW1";
-const char* NeonGreen = "CARSHADOW2";
-void __declspec(naked) CarShadowCave()
-{
-	__asm
-	{
-		mov ecx, [ebp + 8];
-		mov ecx, [ecx + 0x000001EC];
-		call CarShadow2;
-
-		cmp eax, 0x89F23A14; // green
-		jne neonBlue;
-		push NeonGreen;
-		jmp neonExit;
-
-
-	neonBlue:
-		cmp eax, 0x880C43AB; // blue
-		jne neonOriginal;
-		push NeonBlue;
-		jmp neonExit;
-
-	neonOriginal:
-		push 0x009F26B4;
-	neonExit:
-		jmp CarShadow1;
-	}
-}
-
 DWORD FrontBadge1 = 0x00859D02;
 DWORD FrontBadge2 = 0x00859C8B;
 void __declspec(naked) FrontBadgeCave()
@@ -1056,6 +1030,25 @@ void __declspec(naked) FixExhaustCave2()
 	}
 }
 
+DWORD FixFrontRearDeals1 = 0x004ADC76;
+DWORD FixFrontRearDeals2 = 0x004ADC54;
+void __declspec(naked) FixFrontRearDealsCave()
+{
+	__asm
+	{
+		cmp dword ptr[esp + 0x08], 0x64;
+		jne otherPart;
+		jmp FixFrontRearDeals1;
+
+	otherPart:
+		test byte ptr[esi], 01;
+		jne applyPart;
+		jmp FixFrontRearDeals2;
+	applyPart:
+		jmp FixFrontRearDeals1;
+	}
+}
+
 void InitPopupHeadLights()
 {
 	injector::MakeJMP(0x0085980B, PopUpHeadlightsCave, true);
@@ -1138,8 +1131,7 @@ void Init()
 	InitPartLoadHook();
 	InitExhaustFix();
 
-	/*injector::MakeJMP(0x007E5A65, CarShadowCave, true);
-	injector::WriteMemory<char>(0x007E5E4F, 0xEB, true);*/
+	injector::MakeJMP(0x004ADC4F, FixFrontRearDealsCave, true);
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
