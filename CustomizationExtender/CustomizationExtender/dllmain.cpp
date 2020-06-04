@@ -470,9 +470,33 @@ void __declspec(naked) FixRoofCarName2Cave()
 	}
 }
 
-void __stdcall AddAftermarketMenus(void* _this)
+void __stdcall AddAftermarketMenus(char* _this, int carId)
 {
+	int isAutosculpt = *(_this + 0x2D4);
+	if (CheckCarData(_IneriorHI, carId) == 1)
+	{
+		FeCustomizeParts_AddMenuOption(_this, 0x3691263B, 0x1D, isAutosculpt, 0);
+	}
 
+	if (CheckCarData(_Roof, carId) == 2)
+	{
+		FeCustomizeParts_AddMenuOption(_this, 0x301B0BF9, 0x4C, isAutosculpt, 0);
+	}
+
+	if (CheckCarData(_PopUpHeadLights, carId) == 2)
+	{
+		FeCustomizeParts_AddMenuOption(_this, 0x3691263B, 0x20, isAutosculpt, 0);
+	}
+
+	if (CheckCarData(_FrontBadging, carId) == 1)
+	{
+		FeCustomizeParts_AddMenuOption(_this, 0x3691263B, 0x49, isAutosculpt, 0);
+	}
+
+	if (CheckCarData(_RearBadging, carId) == 1)
+	{
+		FeCustomizeParts_AddMenuOption(_this, 0x3691263B, 0x4B, isAutosculpt, 0);
+	}
 }
 
 DWORD AftermarketTuning1 = 0x00866215;
@@ -487,106 +511,11 @@ void __declspec(naked) AftermarketTuningCave()
 		mov eax, [eax];
 		add eax, 0xBF0;
 		push[eax];
-		push _IneriorHI;
-		call CheckCarData;
-		cmp eax, 1;
+		push esi;
+		call AddAftermarketMenus;
+
 		RESTORE_REGS;
-		jne skipInerior;
-
-		xor edx, edx;
-		mov dl, [esi + 0x000002D4];
-		push 00;
-		mov ecx, esi;
-		push edx;
-		push 0x1D; // Interior
-		push 0x3691263B; // item name
-		call FeCustomizeParts_AddMenuOption;
-
-	skipInerior:
-		SAVE_REGS;
-		mov eax, CurrentCarPtr;
-		mov eax, [eax];
-		add eax, 0xBF0;
-		push[eax];
-		push _Roof;
-		call CheckCarData;
-		cmp eax, 2;
-		RESTORE_REGS;
-		jne skipRoof;
-
-		xor edx, edx;
-		mov dl, [esi + 0x000002D4];
-		push 00;
-		mov ecx, esi;
-		push edx;
-		push 0x4c; // Roof
-		push 0x301B0BF9; // item name
-		call FeCustomizeParts_AddMenuOption;
-
-	skipRoof:
-		SAVE_REGS;
-		mov eax, CurrentCarPtr;
-		mov eax, [eax];
-		add eax, 0xBF0;
-		push[eax];
-		push _PopUpHeadLights
-			call CheckCarData;;
-		cmp eax, 2;
-		RESTORE_REGS;
-		jne skipLights;
-
-		xor edx, edx;
-		mov dl, [esi + 0x000002D4];
-		push 00;
-		mov ecx, esi;
-		push edx;
-		push 0x20; // Headlight left
-		push 0x3691263B; // item name
-		call FeCustomizeParts_AddMenuOption;
-
-	skipLights:
-		SAVE_REGS;
-		mov eax, CurrentCarPtr;
-		mov eax, [eax];
-		add eax, 0xBF0;
-		push[eax];
-		push _FrontBadging;
-		call CheckCarData;
-		cmp eax, 1;
-		RESTORE_REGS;
-		jne skipFrontBadging;
-
-		xor edx, edx;
-		mov dl, [esi + 0x000002D4];
-		push 00;
-		mov ecx, esi;
-		push edx;
-		push 0x49; // Front badging
-		push 0x3691263B; // item name
-		call FeCustomizeParts_AddMenuOption;
-
-	skipFrontBadging:
-		SAVE_REGS;
-		mov eax, CurrentCarPtr;
-		mov eax, [eax];
-		add eax, 0xBF0;
-		push[eax];
-		push _RearBadging;
-		call CheckCarData;
-		cmp eax, 1;
-		RESTORE_REGS;
-		jne skipRearBadging;
-
-		xor edx, edx;
-		mov dl, [esi + 0x000002D4];
-		push 00;
-		mov ecx, esi;
-		push edx;
-		push 0x4B; // Rear badging
-		push 0x3691263B; // item name
-		call FeCustomizeParts_AddMenuOption;
-
-	skipRearBadging:
+		
 		jmp AftermarketTuning1;
 	}
 }
